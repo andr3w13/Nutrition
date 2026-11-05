@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torchmetrics
 import timm
@@ -133,6 +134,7 @@ def train(cfg):
         {"params": model.image_projection.parameters(), "lr": cfg.CLASSIFIER_LR},
         {"params": model.classifier.parameters(), "lr": cfg.CLASSIFIER_LR},
     ])
+    scheduler = CosineAnnealingLR(optimizer, T_max=cfg.EPOCHS) if cfg.USE_SCHEDULER else None
     criterion = get_loss(cfg)
     train_loader, val_loader, _ = get_dataloaders(cfg, tokenizer)
 
@@ -150,6 +152,8 @@ def train(cfg):
             loss.backward()
             optimizer.step()
             total_loss += loss.item() * len(preds)
+        if scheduler is not None:
+            scheduler.step()
 
         train_loss = total_loss / len(train_loader.dataset)
         val_metrics = evaluate(model, val_loader, cfg, device)

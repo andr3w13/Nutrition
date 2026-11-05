@@ -25,14 +25,16 @@ class Config:
     IMG_STD = (0.229, 0.224, 0.225)
     MAX_TEXT_LEN = 128
     MASS_SCALE = 1000  # масса подаётся в модель в килограммах
-    PREDICT_DENSITY = False  # True: модель предсказывает ккал на грамм, потом умножаем на массу
+    PREDICT_DENSITY = True  # True: модель предсказывает ккал на грамм, потом умножаем на массу
     TARGET_SCALE = 100  # при PREDICT_DENSITY=False модель предсказывает калории в сотнях ккал
 
     # обучение
     LOSS = "l1"  # "l1" или "smooth_l1" (Huber)
     SMOOTH_L1_BETA = 50  # до какой ошибки в ккал лосс квадратичный
-    BATCH_SIZE = 4  # маленький батч, чтобы не словить OOM при разморозке энкодеров
-    EPOCHS = 20
+    # при батче 4 BatchNorm в EfficientNet считает статистики по слишком малой выборке
+    BATCH_SIZE = 16
+    EPOCHS = 30
+    USE_SCHEDULER = True  # CosineAnnealingLR, плавно снижает LR к концу обучения
     TEXT_LR = 3e-5
     IMAGE_LR = 1e-4
     CLASSIFIER_LR = 1e-3
