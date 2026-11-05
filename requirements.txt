@@ -3,3 +3,8 @@ numpy
 matplotlib
 pillow
 gdown
+torch
+timm
+transformers
+albumentations
+torchmetrics
