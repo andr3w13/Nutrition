@@ -9,13 +9,11 @@ from albumentations.pytorch import ToTensorV2
 
 
 def ingredients_to_text(ingr_ids, id2name):
-    """'ingr_0000000122;ingr_0000000026' -> 'salmon, zucchini'. deprecated пропускаем."""
     names = [id2name[int(i.replace("ingr_", ""))] for i in ingr_ids.split(";")]
     return ", ".join(n for n in names if n != "deprecated")
 
 
 def load_data(cfg):
-    """Читает таблицы, заменяет ID ингредиентов на названия и делит данные на train/val/test."""
     dish = pd.read_csv(os.path.join(cfg.DATA_DIR, "dish.csv"))
     ingredients = pd.read_csv(os.path.join(cfg.DATA_DIR, "ingredients.csv"))
     id2name = dict(zip(ingredients["id"], ingredients["ingr"]))
@@ -29,8 +27,6 @@ def load_data(cfg):
 
 
 def get_transforms(cfg, train=False):
-    # фото сняты сверху, поэтому отражения и повороты на 90 градусов не портят картинку.
-    # сильный зум не используем, чтобы не менять видимый размер порции
     aug = []
     if train:
         aug = [
@@ -39,7 +35,6 @@ def get_transforms(cfg, train=False):
             A.RandomRotate90(p=0.5),
             A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.0, p=0.5),
         ]
-    # albumentations использует свой генератор случайных чисел, поэтому сид передаём явно
     return A.Compose([
         A.Resize(cfg.IMG_SIZE, cfg.IMG_SIZE),
         *aug,
@@ -65,7 +60,7 @@ class NutritionDataset(Dataset):
         image = Image.open(img_path).convert("RGB")
         image = self.transforms(image=np.array(image))["image"]
 
-        # порядок ингредиентов ничего не значит, на train перемешиваем его
+        # порядок ингредиентов ничего не значит
         text = row["ingredients"]
         if self.shuffle_ingredients and text:
             text = ", ".join(np.random.permutation(text.split(", ")))

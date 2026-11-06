@@ -25,14 +25,12 @@ def seed_everything(seed):
 
 
 def seed_worker(worker_id):
-    # у каждого воркера DataLoader свой сид, выведенный из общего
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
 
 def set_requires_grad(module, unfreeze_pattern=""):
-    """Замораживает все параметры, кроме тех, чьё имя начинается с одного из префиксов через '|'."""
     prefixes = tuple(unfreeze_pattern.split("|")) if unfreeze_pattern else ()
     for name, param in module.named_parameters():
         param.requires_grad = name.startswith(prefixes) if prefixes else False
@@ -46,7 +44,6 @@ class MultimodalModel(nn.Module):
 
         self.text_projection = nn.Linear(self.text_encoder.config.hidden_size, cfg.HIDDEN_DIM)
         self.image_projection = nn.Linear(self.image_encoder.num_features, cfg.HIDDEN_DIM)
-        # на вход головы идут оба эмбеддинга и масса порции (+1 признак)
         self.classifier = nn.Sequential(
             nn.Linear(2 * cfg.HIDDEN_DIM + 1, cfg.HIDDEN_DIM),
             nn.ReLU(),
@@ -55,7 +52,6 @@ class MultimodalModel(nn.Module):
         )
 
     def forward(self, input_ids, attention_mask, image, mass):
-        # эмбеддинг CLS-токена
         text_emb = self.text_encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state[:, 0]
         image_emb = self.image_encoder(image)
         x = torch.cat([
@@ -80,7 +76,6 @@ def predict(model, batch, cfg, device):
 
 
 def get_loss(cfg):
-    # SmoothL1 это Huber, делённый на beta, поэтому лосс остаётся в масштабе MAE
     if cfg.LOSS == "smooth_l1":
         return nn.SmoothL1Loss(beta=cfg.SMOOTH_L1_BETA)
     return nn.L1Loss()
@@ -117,7 +112,6 @@ def evaluate(model, loader, cfg, device):
 
 
 def train(cfg):
-    """Обучает модель по конфигу, сохраняет веса лучшей эпохи и возвращает модель и историю метрик."""
     seed_everything(cfg.SEED)
     device = torch.device(cfg.DEVICE if torch.cuda.is_available() else "cpu")
     print("Устройство", device)
@@ -166,6 +160,6 @@ def train(cfg):
             best_mae = val_metrics["mae"]
             torch.save(model.state_dict(), cfg.SAVE_PATH)
 
-    print(f"Лучший val MAE {best_mae:.2f}, веса сохранены в {cfg.SAVE_PATH}")
+    print(f"Лучший val MAE {best_mae:.2f}")
     model.load_state_dict(torch.load(cfg.SAVE_PATH, map_location=device))
     return model, history
