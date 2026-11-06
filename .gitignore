@@ -1,6 +1,5 @@
 data/
 nutrition.zip
 .venv/
-/*.md
 scripts/__pycache__/
 models/
